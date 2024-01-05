@@ -204,8 +204,8 @@ def layer_neural(f: float | np.floating,
 
 # Logistic difference Loss
 def logistic_difference_loss(f: float | np.floating,
-             y: int | np.integer,
-             mu: float | np.floating) -> float | np.floating:
+                             y: int | np.integer,
+                             mu: float | np.floating) -> float | np.floating:
     """
     Calcula la Logistic Difference Loss de la funcion f con respecto al valor de y.
 
