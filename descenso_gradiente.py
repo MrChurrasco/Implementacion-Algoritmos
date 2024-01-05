@@ -6,12 +6,12 @@ import numpy as np
 from numpy.linalg import inv
 
 
-def DescensoGradiente(
-    fun: function,
-    xk: np.ndarray[float],
-    grad_fun: function,
-    hessian_fun: function = None,
-    method: str = "step",
+def descenso_gradiente(
+        fun,
+        xk: np.ndarray[float],
+        grad_fun,
+        hessian_fun=None,
+        method: str = "step",
 ) -> np.ndarray[float]:
     """Algoritmo del descenso del gradiente implementado con numpy.
     Acepta funciones, gradiente de funciones y hessianos que acepten un vector de numpy (ndarray).
@@ -33,12 +33,12 @@ def DescensoGradiente(
     """
     # Casos borde
     # Escoger un metodo que no existe
-    if not method in ["step", "newton", "qnewton"]:
+    if method not in ["step", "newton", "qnewton"]:
         raise ValueError(
             f"{method} no es uno de los métodos implementados. Utilice steep, newton o qnewton."
         )
     # Escoger algun metodo de newton y no tener el hessiano de la funcion
-    if (hessian_fun == None) and (method in ["newton", "qnewton"]):
+    if (hessian_fun is None) and (method in ["newton", "qnewton"]):
         raise ValueError(
             f"Para utilizar el método de newton o quasi-newton se requiere el hessiano de la funcion."
         )
@@ -48,29 +48,30 @@ def DescensoGradiente(
     # Calculo p_k
     else:
         if method == "step":
-            Bk = np.identity(xk.shape)
+            bk = np.identity(xk.shape[0])
         else:
-            Bk = hessian_fun(xk)
+            bk = hessian_fun(xk)
 
-        pk: np.ndarray[float] = -inv(Bk) @ grad_fun(xk)
+        pk: np.ndarray[float] = -inv(bk) @ grad_fun(xk)
 
     # Calculo alpha_k
 
     def backtracking(
-        fun: function,
-        grad_fun: function,
-        xk: float,
-        pk: np.ndarray,
-        alpha: float = 1,
-        beta: float = 0.5,
-        c: float = 1e-4,
+            fun,
+            grad_fun,
+            xk: np.ndarray[float],
+            pk: np.ndarray,
+            alpha: float = 1,
+            beta: float = 0.5,
+            c: float = 1e-4,
     ) -> float:
         """Método para calcular $\alpha$, usando las condiciones de Goldstein y el método de backtracking.
 
         Args:
             pk (np.ndarray): Vector que índica la dirección de descenso.
             alpha (float, optional): Ponderador del vector pk. Defaults to 1.
-            beta (float, optional): Tasa de disminución del valor de alpha al no cumplir las condiciones de Goldstein. Defaults to 0.5.
+            beta (float, optional): Tasa de disminución del valor de alpha al no cumplir las condiciones de Goldstein.
+            Defaults to 0.5.
             c (float, optional): Constante entre (0,1). Defaults to 1e-4.
 
         Returns:
@@ -87,3 +88,11 @@ def DescensoGradiente(
 
     # Retornamos el x_(k+1)
     return xk + alpha_k * pk
+
+
+def main():
+    print(list(map(lambda x: x + 2, (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))))
+
+
+if __name__ == '__main__':
+    main()
