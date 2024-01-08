@@ -1,4 +1,4 @@
-import funciones_costo as fc
+from funciones_costo import opt as fc
 import pytest
 import numpy as np
 
