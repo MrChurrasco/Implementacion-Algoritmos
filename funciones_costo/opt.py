@@ -16,7 +16,7 @@ def square_loss(f: float | np.floating,
     Returns: El error cuadrático de la función f con el valor y.
 
     """
-    return math.pow((y - f), 2)
+    return (y - f)**2
 
 
 # Hinge Loss
@@ -49,7 +49,9 @@ def smooth_hinge_loss(f: float | np.floating,
 
     """
     a = y * f
-    return math.pow((1 - a), 2) / 2 if 0 < a <= 1 else (a <= 0) * (0.5 - a)
+    if 0 < a <= 1:
+        return (1 - a)**2 / 2
+    return (a <= 0) * (0.5 - a)
 
 
 # Modified Square Loss
