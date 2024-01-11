@@ -1,38 +1,28 @@
 import numpy as np
-from scipy.optimize import minimize, Bounds
-from numpy.linalg import norm
+from scipy.optimize import minimize_scalar
+from numpy.linalg import norm, solve
 
 
-def semi_newton_paso(fun: callable, grad_fun: callable, bk: callable,
+def semi_newton_paso(fun: callable, grad_fun: callable, bk: np.ndarray[float],
                      xk: np.ndarray[float], beta: float,
                      c: float, t_min: float, t0_bar: float, gamma: float,
                      rho: float, sigma: float) -> np.ndarray[float]:
+
     wk = grad_fun(*xk)
 
     # Obteniendo dk
-    # Para ello, minimizaremos la norma del vector
+    # Para ello, maximizaremos -<wk,dk> -C||dk||^2
+    # variando los posibles valores para rho
     # Obteniendo el vector dk con la dirección de descenso
-    # con un vector casi unitario
+    def objetivo(x):
+        dk_sol = solve(bk + np.identity(bk.shape[0])*x, -wk)  # Bk(dk) + rho_kdk = wk
+        return -(np.inner(wk, dk_sol) + c * norm(dk_sol))  # <wk,dk> <=-C||dk||^2
 
-    # Posicion inicial
-    # Cota desigualdad <wk,dk> <=-C||dk||^2
-    x0 = np.array(list(-wk / c) + [rho])  # hat{x0} = [x0 rho_max]
+    # Buscamos el mejor dk y rho
+    sol = minimize_scalar(fun=objetivo, bounds=(0, rho))
 
-    sol = minimize(fun=lambda x: norm(x[:-1]),  # ||d||^2
-                   x0=x0,
-                   constraints=(
-                       {"type": "eq",
-                        "fun": lambda x: bk(*x[:-1]) + x[-1] * x[:-1] - wk},  # Bk(dk) + rho_kdk = wk
-                       {"type": "ineq",
-                        "fun": lambda x: -(np.inner(wk, x[:-1]) + c * norm(x[:-1]))},  # <wk,dk> <=-C||dk||^2
-                       {"type": "ineq",
-                        "fun": lambda x: norm(x[:-1]) - 1},  # ||d||^2 >= 1
-                       {"type": "ineq",
-                        "fun": lambda x: x[-1]*(rho-x[-1])}),
-                   method='Nelder-Mead',
-                   )
-
-    dk = sol.x[:-1]  # Obtenemos el vector dkque cumple con las condiciones
+    # Obtenemos el vector dk que cumple con las condiciones
+    dk = solve(bk + np.identity(bk.shape[0])*sol.x, -wk)
 
     # Backtracking + trial step
     tau = np.zeros(3)  # tau[i] = tau_(k-i)
@@ -53,25 +43,28 @@ def semi_newton_paso(fun: callable, grad_fun: callable, bk: callable,
         # Si tau_(k-2) = tau_bar_(k-2) y tau_(k-1) = tau_bar_(k-1)
         # tau_bar_k = gamma*tau_(k-1)
         # else -> tau_bar_k = max{tau_(k-1), t_min}
-        tau_bar[0] = max([tau_bar[1], t_min]) if False in (tau[1:] == tau_bar[1:]) else gamma * tau[1]
-        if not backtracking_cond(tau_bar[0]):
+        tau_bar[0] = gamma * tau[1] if (tau[1] == tau_bar[1]) and (tau[2] == tau_bar[2]) else max([tau_bar[1], t_min])
+        tau[0] = tau_bar[0]
+        if not backtracking_cond(tau[0]):
             break
-        tau[0] = beta * tau_bar[0]  # tau_k = beta*tau_bar_k
-        tau[1:] = tau[:2]  # tau_k-1 = tau_k y tau_k-2 = tau_k-1
-        tau_bar[1:] = tau_bar[:2]  # tau_bar_k-1 = tau_bar_k y tau_bar_k-2 = tau_bar_k-1
+        tau[0] = beta * tau[0]  # tau_k = beta*tau_k
+        tau[1], tau[2] = tau[0], tau[1]  # tau_k-1 = tau_k y tau_k-2 = tau_k-1
+        tau_bar[1], tau_bar[2] = tau_bar[0], tau_bar[1]  # tau_bar_k-1 = tau_bar_k y tau_bar_k-2 = tau_bar_k-1
 
     return xk + tau[0] * dk
 
 
 if __name__ == '__main__':
-    semi_newton_paso(lambda x, y: x ** 2 + y ** 2,
-                     lambda x, y: np.array([2 * x, 2 * y]),
-                     lambda x, y: np.array([[2, 0], [0, 2]]),
-                     np.array([1., -1.]),
-                     0.5,
-                     0.5,
-                     0.5,
-                     1,
-                     1.1,
-                     2,
-                     2)
+    xk = semi_newton_paso(fun=lambda x, y: x ** 2 + y ** 2,
+                          grad_fun=lambda x, y: np.array([2 * x, 2 * y]),
+                          bk=np.array([[2, 0], [0, 2]]),
+                          xk=np.array([1., -1.]),
+                          beta=0.5,
+                          c=0.5,
+                          t_min=0.4,
+                          t0_bar=1,
+                          gamma=1.1,
+                          rho=2,
+                          sigma=2)
+
+    print(xk)

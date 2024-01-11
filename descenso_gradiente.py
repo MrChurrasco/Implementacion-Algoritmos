@@ -115,7 +115,7 @@ def descenso_gradiente(fun, xk: np.ndarray[float], grad_fun, hessian_fun=None, m
         if np.abs(xk1 - xk) <= tol:
             break
         xk = xk1
-    # Numero de iteracion, norma del gradiente
+    # Número de iteración, norma del gradiente
     return xk1, k, norm(grad_fun(xk1))
 
 
