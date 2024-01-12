@@ -1,14 +1,11 @@
-from typing import Tuple, Any
-
 import numpy as np
-from numpy import ndarray
 from scipy.optimize import minimize_scalar
 from numpy.linalg import norm, solve
 
 
 def backtracking(fun, wk: np.ndarray, xk: np.ndarray, dk: np.ndarray, tk: np.ndarray | float = 1, beta: float = 0.5,
                  sigma: float = 1e-4) -> float:
-    """Método para calcular $\alpha$, usando las condiciones de Goldstein y el método de backtracking.
+    """Método para calcular alpha, usando las condiciones de Goldstein y el método de backtracking.
 
     Args:
         fun (function): Función por la cual se quiere descender.
@@ -21,7 +18,7 @@ def backtracking(fun, wk: np.ndarray, xk: np.ndarray, dk: np.ndarray, tk: np.nda
         sigma (float, optional): Constante entre (0,1). Defaults to 1e-4.
 
     Returns:
-        float: Retorna el primer $\alpha$ encontrado que cumple las condiciones de Goldstein.
+        float: Retorna el primer alpha encontrado que cumple las condiciones de Goldstein.
     """
     # Calculamos las constantes del ciclo antes (Optimización)
     rhs = sigma * wk @ dk
@@ -63,33 +60,34 @@ def semi_newton_paso(fun: callable, grad_fun: callable, bk: np.ndarray,
     tau[1] = backtracking(fun=fun, wk=wk, xk=xk, dk=dk, tk=tau_bar[1], beta=beta, sigma=sigma)
 
     # Ciclo backtracking
-    while True:
-        # Si tau_(k-2) = tau_bar_(k-2) y tau_(k-1) = tau_bar_(k-1)
-        # tau_bar_k = gamma*tau_(k-1)
-        # else -> tau_bar_k = max{tau_(k-1), t_min}
-        tau_bar[0] = gamma * tau[1] if (tau[1] == tau_bar[1]) and (tau[2] == tau_bar[2]) else max([tau[1], t_min])
-        tau[0] = tau_bar[0]
-        if fun(*(xk + tau[0] * dk)) > fun(*xk) + tau[0] * sigma * wk @ dk:
-            break
-        tau[0] = beta * tau[0]  # tau_k = beta*tau_k
-        tau[1], tau[2] = tau[0], tau[1]  # tau_k-1 = tau_k y tau_k-2 = tau_k-1
-        tau_bar[1], tau_bar[2] = tau_bar[0], tau_bar[1]  # tau_bar_k-1 = tau_bar_k y tau_bar_k-2 = tau_bar_k-1
+
+    # Si tau_(k-2) = tau_bar_(k-2) y tau_(k-1) = tau_bar_(k-1)
+    # tau_bar_k = gamma*tau_(k-1)
+    # else -> tau_bar_k = max{tau_(k-1), t_min}
+    tau_bar[0] = gamma * tau[1] if (tau[1] == tau_bar[1]) and (tau[2] == tau_bar[2]) else max([tau[1], t_min])
+    tau[0] = backtracking(fun=fun, wk=wk, xk=xk, dk=dk, tk=tau_bar[0], beta=beta, sigma=sigma)
+    # if fun(*(xk + tau[0] * dk)) > fun(*xk) + tau[0] * sigma * wk @ dk:
+    #    break
+    # tau[0] = beta * tau[0]  # tau_k = beta*tau_k
+    # tau[1], tau[2] = tau[0], tau[1]  # tau_k-1 = tau_k y tau_k-2 = tau_k-1
+    # tau_bar[1], tau_bar[2] = tau_bar[0], tau_bar[1]  # tau_bar_k-1 = tau_bar_k y tau_bar_k-2 = tau_bar_k-1
 
     return xk + tau[0] * dk
 
 
-def semi_newton(fun: callable, grad_fun: callable, bk: np.ndarray, x0: np.ndarray, beta: float,
+def semi_newton(fun: callable, grad_fun: callable, bk: np.ndarray, xk: np.ndarray, beta: float,
                 c: float, t_min: float, t0_bar: float, gamma: float,
-                rho: float, sigma: float, tol: float = 1e-4) -> tuple[ndarray, int, Any]:
-    xk = semi_newton_paso(fun=fun, grad_fun=grad_fun, bk=bk, xk=x0, beta=beta,
-                          c=c, t_min=t_min, t0_bar=t0_bar, gamma=gamma, rho=rho, sigma=sigma)
+                rho: float, sigma: float, tol: float = 1e-4) -> tuple:
 
-    k = 1
-    while np.sqrt(norm(xk - x0)) > tol:
-        x0 = xk
-        xk = semi_newton_paso(fun=fun, grad_fun=grad_fun, bk=bk, xk=x0, beta=beta,
-                              c=c, t_min=t_min, t0_bar=t0_bar, gamma=gamma, rho=rho, sigma=sigma)
+    k = 0
+    while True:
+        xk1 = semi_newton_paso(fun=fun, grad_fun=grad_fun, bk=bk, xk=xk, beta=beta,
+                               c=c, t_min=t_min, t0_bar=t0_bar, gamma=gamma, rho=rho, sigma=sigma)
         k += 1
+        if norm(grad_fun(*xk)) <= tol:
+            break
+        xk = xk1
+
     return xk, k, norm(grad_fun(*xk))
 
 
@@ -97,7 +95,7 @@ def main():
     a1 = semi_newton(fun=lambda x, y: x ** 2 + y ** 2,
                      grad_fun=lambda x, y: np.array([2 * x, 2 * y]),
                      bk=np.array([[2, 0], [0, 2]]),
-                     x0=np.array([1., -1.]),
+                     xk=np.array([1., -1.]),
                      beta=0.5,
                      c=0.5,
                      t_min=0.4,

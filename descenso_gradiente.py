@@ -8,7 +8,7 @@ from numpy import ndarray
 from numpy.linalg import inv, norm
 
 
-def backtracking(fun, grad_fun, xk: np.ndarray[float], pk: np.ndarray, alpha: float = 1, beta: float = 0.5,
+def backtracking(fun, grad_fun, xk: np.ndarray, pk: np.ndarray, alpha: float = 1, beta: float = 0.5,
                  c: float = 1e-4) -> float:
     """Método para calcular $\alpha$, usando las condiciones de Goldstein y el método de backtracking.
 
@@ -71,8 +71,8 @@ def descenso_gradiente_paso(fun, xk: np.ndarray[float], grad_fun, hessian_fun=No
     return xk + alpha_k * pk
 
 
-def descenso_gradiente(fun, xk: np.ndarray[float], grad_fun, hessian_fun=None, method: str = "step",
-                       tol: float = 1e-10) -> tuple[ndarray[float], int, float]:
+def descenso_gradiente(fun, xk: np.ndarray, grad_fun, hessian_fun=None, method: str = "step",
+                       tol: float = 1e-10) -> tuple[ndarray, int, float]:
     """Algoritmo del descenso del gradiente implementado con numpy.
     Acepta funciones, gradiente de funciones y hessianos que acepten un vector de numpy (ndarray).
     Están disponibles 3 métodos: step, newton y qnewton.
@@ -99,7 +99,7 @@ def descenso_gradiente(fun, xk: np.ndarray[float], grad_fun, hessian_fun=None, m
         raise ValueError(
             f"{method} no es uno de los métodos implementados. Utilice steep, newton o qnewton."
         )
-    # Escoger algun metodo de newton y no tener el hessiano de la funcion
+    # Escoger algún metodo de newton y no tener el hessiano de la funcion
     if (hessian_fun is None) and (method in ["newton", "qnewton"]):
         raise ValueError(
             f"Para utilizar el método de newton o quasi-newton se requiere el hessiano de la funcion."
@@ -112,7 +112,7 @@ def descenso_gradiente(fun, xk: np.ndarray[float], grad_fun, hessian_fun=None, m
                                       hessian_fun=hessian_fun,
                                       method=method)
         k += 1
-        if np.sqrt(norm(xk - xk1)) <= tol:
+        if norm(grad_fun(*xk1)) <= tol:
             break
         xk = xk1
     # Número de iteración, norma del gradiente
