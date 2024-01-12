@@ -26,9 +26,9 @@ def backtracking(fun, grad_fun, xk: np.ndarray[float], pk: np.ndarray, alpha: fl
         float: Retorna el primer $\alpha$ encontrado que cumple las condiciones de Goldstein.
     """
     # Calculamos las constantes del ciclo antes (Optimización)
-    rhs = c * grad_fun(xk) @ pk
-    fxk = fun(xk)
-    while fun(xk + alpha * pk) > fxk + alpha * rhs:
+    rhs = c * grad_fun(*xk) @ pk
+    fxk = fun(*xk)
+    while fun(*(xk + alpha * pk)) > fxk + alpha * rhs:
         alpha = beta * alpha
     return alpha
 
@@ -62,7 +62,7 @@ def descenso_gradiente_paso(fun, xk: np.ndarray[float], grad_fun, hessian_fun=No
     else:
         bk = hessian_fun(xk)
 
-    pk: np.ndarray[float] = -inv(bk) @ grad_fun(xk)
+    pk: np.ndarray[float] = -inv(bk) @ grad_fun(*xk)
 
     # Calculo alpha_k
     alpha_k: float = backtracking(fun, grad_fun, xk, pk)
@@ -112,15 +112,20 @@ def descenso_gradiente(fun, xk: np.ndarray[float], grad_fun, hessian_fun=None, m
                                       hessian_fun=hessian_fun,
                                       method=method)
         k += 1
-        if np.abs(xk1 - xk) <= tol:
+        if np.sqrt(norm(xk - xk1)) <= tol:
             break
         xk = xk1
     # Número de iteración, norma del gradiente
-    return xk1, k, norm(grad_fun(xk1))
+    return xk1, k, norm(grad_fun(*xk1))
 
 
 def main():
-    print(list(map(lambda x: x + 2, (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))))
+    a1 = descenso_gradiente(fun=lambda x, y: x ** 2 + y ** 2,
+                            grad_fun=lambda x, y: np.array([2 * x, 2 * y]),
+                            xk=np.array([1., -1.]),
+                            tol=1e-40)
+
+    print(a1)
 
 
 if __name__ == '__main__':

@@ -163,6 +163,7 @@ def train(n0, n1, v_fun, dv_fun, fun, dfun, backtracking_fun,
         tam = select.shape[0]
     else:
         select = np.where((trainy == n0) + (trainy == n1))[0][:tam]
+        
     x_train = trainx[select].reshape(tam, 28 ** 2)  # /255.
     x_train = (x_train - x_train.mean().astype(np.float32)) / x_train.std().astype(
         np.float32)  # Image preprocessing: we standarized by substracting the mean and dividing by the standard deviation
