@@ -93,7 +93,7 @@ def semi_newton(fun: callable, grad_fun: callable, bk: np.ndarray, x0: np.ndarra
     return xk, k, norm(grad_fun(*xk))
 
 
-if __name__ == '__main__':
+def main():
     a1 = semi_newton(fun=lambda x, y: x ** 2 + y ** 2,
                      grad_fun=lambda x, y: np.array([2 * x, 2 * y]),
                      bk=np.array([[2, 0], [0, 2]]),
@@ -108,3 +108,7 @@ if __name__ == '__main__':
                      tol=1e-40)
 
     print(a1)
+
+
+if __name__ == '__main__':
+    main()
