@@ -90,7 +90,9 @@ def descenso_gradiente(fun, xk: np.ndarray, grad_fun, hessian_fun=None, method: 
         ValueError: Usar el método de newton o qnewton sin entregar el hessiano de la función.
 
     Returns:
-        np.ndarray[float]: Retorna el siguiente valor del descenso.
+        np.ndarray[float]: Retorna el valor mínimo del descenso.
+        Int: Número de iteraciones.
+        Float: norma del gradiente evaluado en el valor óptimo.
     """
 
     # Casos borde

@@ -3,7 +3,7 @@ from numpy.random import rand, seed
 from numpy.linalg import norm
 from matplotlib import pyplot as plt
 from time import time
-from keras.datasets import mnist
+from torchvision.datasets import MNIST
 import pandas as pd
 
 
@@ -39,16 +39,12 @@ def backtracking(f, g, xk, pk, alpha=1, beta=0.5, c=1e-4):
     return alpha
 
 
-def f(x, c, m, lam, cx=None):
-    if cx is None:
-        cx = c @ x
-    return 1 / m * v(cx).sum() + lam / 2 * norm(x) ** 2
+def f(x, c, m, lam):
+    return (1 / m) * v(c @ x).sum() + lam / 2 * norm(x) ** 2
 
 
-def df(x, c, m, lam, cx=None):
-    if cx is None:
-        cx = c @ x
-    return 1 / m * c.T @ dv(cx) + lam * x
+def df(x, c, m, lam):
+    return 1 / m * c.T @ dv(c @ x) + lam * x
 
 
 def s2_v2(t, s):
@@ -94,9 +90,8 @@ def s2_v(t, s):
     return result
 
 
-def alg1(x0, sigma, t0, c, m, n, lam, tol=1e-6, beta=0.5, gam=2):
+def alg1(xk, sigma, t0, c, m, n, lam, tol=1e-6, beta=0.5, gam=2):
     t = time()
-    xk = x0.copy()
     k = 0
     reduced = 0
     continua = True
@@ -105,9 +100,10 @@ def alg1(x0, sigma, t0, c, m, n, lam, tol=1e-6, beta=0.5, gam=2):
     nc2 = np.linalg.norm(c.T, axis=0) ** 2
     while continua:
         Cxk = c @ xk
-        wk = df(xk, c, m, Cxk)
+        wk = df(xk, c, m, lam)
         if norm(wk) < tol:
             continua = False
+        # s = np.expand_dims(np.where((-1 <= Cxk) & (Cxk <= 1), (3/2)*Cxk, 0),1)
         s = s2_v(np.expand_dims(Cxk, 1), np.ones((m, 1)))
         s0 = s.flatten() * nc2.flatten()
         rhok = -np.sum(s0[s0 < 0])
@@ -166,7 +162,8 @@ def train(n0, n1, v_fun, dv_fun, fun, dfun, backtracking_fun,
         
     x_train = trainx[select].reshape(tam, 28 ** 2)  # /255.
     x_train = (x_train - x_train.mean().astype(np.float32)) / x_train.std().astype(
-        np.float32)  # Image preprocessing: we standarized by substracting the mean and dividing by the standard deviation
+        np.float32)  # Image preprocessing: we standarized by substracting the mean and dividing by the standard
+    # deviation
     select_test = np.where((testy == n0) + (testy == n1))[0]
     x_test = testx[select_test].reshape(select_test.shape[0], 28 ** 2)  # /255.
     x_test = (x_test - x_test.mean().astype(np.float32)) / x_test.std().astype(np.float32)
@@ -241,7 +238,7 @@ def train(n0, n1, v_fun, dv_fun, fun, dfun, backtracking_fun,
         plt.show()
 
     if gradient:
-        sol_grad = grad(x0, tol=toler)
+        sol_grad = grad(x0, fun, dfun, tol=toler)
         print('Grad done! [n,m] = ', [n, m])
         print('Grad :', sol_grad[1:])  # ,norm(sol-sol_grad[0]))
 
@@ -271,7 +268,14 @@ def main():
 
     # C=2*(rand(m,n)-.5)
 
-    (trainX, trainy), (testX, testy) = mnist.load_data()
+    (trainX, trainy), (testX, testy) = (list(zip(*MNIST(root="",
+                                                       train=True,
+                                                       download=True,
+                                                       transform=np.asarray))),
+                                        list(zip(*MNIST(root="",
+                                                        train=False,
+                                                        download=True,
+                                                        transform=np.asarray))))
 
     tam = 5000
 

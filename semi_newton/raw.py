@@ -48,7 +48,7 @@ def semi_newton_paso(fun: callable, grad_fun: callable, bk: np.ndarray,
     # Obtenemos el vector dk que cumple con las condiciones
     dk: np.ndarray = solve(bk + np.identity(bk.shape[0]) * sol.x, -wk)
 
-    # Backtracking + trial step
+    # Backtracking + Self-adaptive trial stepsize
     tau = np.zeros(3)  # tau[i] = tau_(k-i)
     tau_bar = np.zeros(3)  # tau_bar[i] = \bar(tau)_(k-i)
 
