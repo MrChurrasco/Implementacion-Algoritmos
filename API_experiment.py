@@ -12,11 +12,6 @@ df_trainY: np.ndarray
 df_testX: np.ndarray
 df_testY: np.ndarray
 
-x_train: np.ndarray
-y_train: np.ndarray
-x_test: np.ndarray
-y_test: np.ndarray
-
 # DataFrames que guardarán los datos obtenidos en el entrenamiento
 df_main: pd.DataFrame
 df_comb: pd.DataFrame
@@ -96,7 +91,7 @@ def initial_df_metadata(new: bool = False) -> None:
                                     f"Marque new=True en caso que no existan estos archivos.")
 
 
-def set_dataset_by_experiment(size: int,
+def set_dataset_by_experiment(size: int = 0,
                               class_filter: list[int] = None,
                               class_to_compare: list[tuple[int, int]] = None,
                               fun_per: callable(float) = None,
@@ -104,8 +99,8 @@ def set_dataset_by_experiment(size: int,
     global df_trainX, df_trainY, df_testX, df_testY, list_to_compare
 
     # Error que pueden suceder
-    if type(size) is not int and size > 0:
-        raise ValueError("size tiene que ser entero positivo y mayor que 0.")
+    if type(size) is not int and size >= 0:
+        raise ValueError("size tiene que ser entero positivo y mayor que 0 o None.")
 
     if type(seed) is not int and seed > 0:
         raise ValueError("seed tiene que ser entero positivo y mayor que 0.")
@@ -116,6 +111,8 @@ def set_dataset_by_experiment(size: int,
     if type(class_filter) is not None:
         if type(class_filter) is not list:
             raise ValueError("class_filter debe ser una lista de enteros.")
+        if len(class_filter) < 1:
+            raise ValueError("class_filter debe ser una lista que contenga más de una clase.")
         for num in class_filter:
             if type(num) is not int and num >= 0:
                 raise ValueError("class_filter tiene un elemento que no es un entero mayor igual que cero.")
@@ -136,15 +133,57 @@ def set_dataset_by_experiment(size: int,
 
     # Código
 
-    # Guardamos las comparaciones que se van a realizar en el experimento
+    # Filtrado
+    # Obtenemos las clases que deseamos quedarnos
+    filtro_clases: set[int] = set()
+    if class_to_compare is not None:
+        aux_1, aux_2 = zip(*class_to_compare)
+        filtro_clases = set(aux_1) | set(aux_2) | filtro_clases
+        del aux_1, aux_2
+    if class_filter is not None:
+        filtro_clases = set(class_filter) | filtro_clases
 
+    # Ya obtenida las clases que vamos a necesitar filtramos el dataset
+    df_trainX = df_trainX[np.in1d(df_trainY, list(filtro_clases))]
+    df_trainY = df_trainY[np.in1d(df_trainY, list(filtro_clases))]
+    df_testX = df_testX[np.in1d(df_testY, list(filtro_clases))]
+    df_testY = df_testY[np.in1d(df_testY, list(filtro_clases))]
+
+    # Comparaciones que se realizarán en el experimento
+    # Guardamos las comparaciones que se van a realizar en el experimento
     if class_to_compare:
         list_to_compare = set([(x, y) if x < y else (y, x) for x, y in class_to_compare])
+    elif class_filter:
+        list_to_compare = set()
+        # cross class_filter consigo misma
+        for x in class_filter:
+            for y in class_filter:
+                if x < y:
+                    list_to_compare.add((x, y))
     else:
-        if class_filter:
-            list_to_compare = set()
-            # cross class_filter consigo misma
-            for x in class_filter:
-                for y in class_filter:
-                    if x < y:
-                        list_to_compare.add((x, y))
+        list_to_compare = set()
+        aux = set(df_testY.tolist())
+        for x in aux:
+            for y in aux:
+                if x < y:
+                    list_to_compare.add((x, y))
+        del aux
+
+    # Aplicando la función de perturbación a las features
+    if fun_per:
+        # Vectorizamos la función de perturbación
+        v_fun_per = np.vectorize(fun_per)
+        # Aplicamos en las features
+        df_trainX = v_fun_per(df_trainX)
+        df_testX = v_fun_per(df_testX)
+
+    # Recortamos el dataset según el tamaño pedido
+    if size > 0:
+        df_trainX = np.random.choice(df_trainX, size, replace=False)
+        df_testX = np.random.choice(df_testX, size, replace=False)
+
+    # Todo esta listo para el loop del experimento
+
+
+def run_experiments():
+    pass
