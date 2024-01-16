@@ -1,8 +1,6 @@
 """
 @author: Sebastian Carrasco
 """
-from typing import Tuple
-
 import numpy as np
 from numpy import ndarray
 from numpy.linalg import inv, norm
@@ -44,7 +42,7 @@ def descenso_gradiente_paso(fun, xk: np.ndarray[float], grad_fun, hessian_fun=No
         xk (np.ndarray[float]): Valor de referencia para hacer el descenso.
         grad_fun (function): El gradiente de la función 'fun'.
         hessian_fun (function, optional): El Hessiano de la función 'fun'. Defaults to None.
-        method (str, optional): Método que se utiliza para hacer el calculo del descenso. Defaults to "step".
+        method (str, optional): Método que se utiliza para hacer el cálculo del descenso. Defaults to "step".
 
     Raises:
         ValueError: Escribir el nombre de un método no implementado.
@@ -82,7 +80,7 @@ def descenso_gradiente(fun, xk: np.ndarray, grad_fun, hessian_fun=None, method: 
         xk (np.ndarray[float]): Valor de referencia para hacer el descenso.
         grad_fun (function): El gradiente de la función 'fun'.
         hessian_fun (function, optional): El Hessiano de la función 'fun'. Defaults to None.
-        method (str, optional): Método que se utiliza para hacer el calculo del descenso. Defaults to "step".
+        method (str, optional): Método que se utiliza para hacer el cálculo del descenso. Defaults to "step".
         tol (float): Tolerancia o diferencia entre x_k y x_(k+1) son iguales
 
     Raises:
@@ -117,7 +115,7 @@ def descenso_gradiente(fun, xk: np.ndarray, grad_fun, hessian_fun=None, method: 
         if norm(grad_fun(*xk1)) <= tol:
             break
         xk = xk1
-    # Número de iteración, norma del gradiente
+    # Número de iteraciones, norma del gradiente
     return xk1, k, norm(grad_fun(*xk1))
 
 
