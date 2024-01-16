@@ -1,6 +1,6 @@
 import numpy as np
-from scipy.optimize import minimize_scalar
 from numpy.linalg import norm, solve
+from scipy.optimize import minimize_scalar
 
 
 def backtracking(fun, wk: np.ndarray, xk: np.ndarray, dk: np.ndarray, tk: np.ndarray | float = 1, beta: float = 0.5,
@@ -30,63 +30,77 @@ def backtracking(fun, wk: np.ndarray, xk: np.ndarray, dk: np.ndarray, tk: np.nda
 
 def semi_newton_paso(fun: callable, grad_fun: callable, bk: np.ndarray,
                      xk: np.ndarray, beta: float,
-                     c: float, t_min: float, t0_bar: float, gamma: float,
-                     rho: float, sigma: float) -> np.ndarray:
+                     c: float, t_min: float, gamma: float,
+                     rho: float, sigma: float, num_paso: int,
+                     tau_hist: np.ndarray, tau_bar_hist: np.ndarray,
+                     rho_opt: bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     wk = grad_fun(*xk)
 
     # Obteniendo dk
-    # Para ello, maximizaremos -<wk,dk> -C||dk||^2
-    # variando los posibles valores para rho
-    # Obteniendo el vector dk con la dirección de descenso
-    def objetivo(x):
-        dk_sol = solve(bk + np.identity(bk.shape[0]) * x, -wk)  # Bk(dk) + rho_kdk = wk
-        return -(np.inner(wk, dk_sol) + c * norm(dk_sol))  # <wk,dk> <=-C||dk||^2
+    if rho_opt:
+        # Para ello, maximizaremos -<wk,dk> -C||dk||^2
+        # variando los posibles valores para rho
+        # Obteniendo el vector dk con la dirección de descenso
+        def objetivo(x):
+            y = solve(bk + np.identity(bk.shape[0]) * x, -wk)  # Bk(dk) + rho_kdk = wk
+            return -(np.inner(wk, y) + c * norm(y))  # <wk,dk> <=-C||dk||^2
 
-    # Buscamos el mejor dk y rho
-    sol = minimize_scalar(fun=objetivo, bounds=(0, rho))
+        # Buscamos el mejor dk y rho
+        sol = minimize_scalar(fun=objetivo, bounds=(0, rho))
 
-    # Obtenemos el vector dk que cumple con las condiciones
-    dk: np.ndarray = solve(bk + np.identity(bk.shape[0]) * sol.x, -wk)
+        # Obtenemos el vector dk que cumple con las condiciones
+        dk: np.ndarray = solve(bk + np.identity(bk.shape[0]) * sol.x, -wk)
+
+    else:
+        while True:
+            dk_sol = solve(bk + np.identity(bk.shape[0]) * rho, -wk)
+            if np.inner(wk, dk_sol) <= -c * norm(dk_sol):
+                break
+            rho = rho >> 1
+
+        dk: np.ndarray = solve(bk + np.identity(bk.shape[0]) * rho, -wk)
 
     # Backtracking + Self-adaptive trial stepsize
-    tau = np.zeros(3)  # tau[i] = tau_(k-i)
-    tau_bar = np.zeros(3)  # tau_bar[i] = \bar(tau)_(k-i)
+    if num_paso == 0:
+        tau_hist[2] = backtracking(fun=fun, wk=wk, xk=xk, dk=dk, tk=tau_bar_hist[2], beta=beta, sigma=sigma)
+        return xk + tau_hist[2] * dk, tau_hist, tau_bar_hist
+    elif num_paso == 1:
+        tau_bar_hist[1] = max([tau_hist[2], t_min])
+        tau_hist[1] = backtracking(fun=fun, wk=wk, xk=xk, dk=dk, tk=tau_bar_hist[1], beta=beta, sigma=sigma)
+        return xk + tau_hist[1] * dk, tau_hist, tau_bar_hist
+    else:
+        # Si tau_(k-2) = tau_bar_(k-2) y tau_(k-1) = tau_bar_(k-1)
+        if (tau_hist[1] == tau_bar_hist[1]) and (tau_hist[2] == tau_bar_hist[2]):
+            tau_bar_hist[0] = gamma * tau_hist[1]
+        # else -> tau_bar_k = max{tau_(k-1), t_min}
+        else:
+            tau_bar_hist[0] = max([tau_hist[1], t_min])
 
-    tau_bar[2] = t0_bar
-
-    # Condiciones iniciales para el loop
-    tau[2] = backtracking(fun=fun, wk=wk, xk=xk, dk=dk, tk=t0_bar, beta=beta, sigma=sigma)
-    tau_bar[1] = max([tau[2], t_min])
-    tau[1] = backtracking(fun=fun, wk=wk, xk=xk, dk=dk, tk=tau_bar[1], beta=beta, sigma=sigma)
-
-    # Ciclo backtracking
-
-    # Si tau_(k-2) = tau_bar_(k-2) y tau_(k-1) = tau_bar_(k-1)
-    # tau_bar_k = gamma*tau_(k-1)
-    # else -> tau_bar_k = max{tau_(k-1), t_min}
-    tau_bar[0] = gamma * tau[1] if (tau[1] == tau_bar[1]) and (tau[2] == tau_bar[2]) else max([tau[1], t_min])
-    tau[0] = backtracking(fun=fun, wk=wk, xk=xk, dk=dk, tk=tau_bar[0], beta=beta, sigma=sigma)
-    # if fun(*(xk + tau[0] * dk)) > fun(*xk) + tau[0] * sigma * wk @ dk:
-    #    break
-    # tau[0] = beta * tau[0]  # tau_k = beta*tau_k
-    # tau[1], tau[2] = tau[0], tau[1]  # tau_k-1 = tau_k y tau_k-2 = tau_k-1
-    # tau_bar[1], tau_bar[2] = tau_bar[0], tau_bar[1]  # tau_bar_k-1 = tau_bar_k y tau_bar_k-2 = tau_bar_k-1
-
-    return xk + tau[0] * dk
+        tau_hist[0] = backtracking(fun=fun, wk=wk, xk=xk, dk=dk, tk=tau_bar_hist[0], beta=beta, sigma=sigma)
+        return xk + tau_hist[0] * dk, tau_hist, tau_bar_hist
 
 
 def semi_newton(fun: callable, grad_fun: callable, bk: np.ndarray, xk: np.ndarray, beta: float,
                 c: float, t_min: float, t0_bar: float, gamma: float,
                 rho: float, sigma: float, tol: float = 1e-4) -> tuple:
-
     k = 0
+    tau = np.zeros(3)  # tau[i] = tau_(k-i)
+    tau_bar = np.zeros(3)  # tau_bar[i] = \bar(tau)_(k-i)
+
+    tau_bar[2] = t0_bar
+    print(xk, tau, tau_bar, k)
     while True:
-        xk1 = semi_newton_paso(fun=fun, grad_fun=grad_fun, bk=bk, xk=xk, beta=beta,
-                               c=c, t_min=t_min, t0_bar=t0_bar, gamma=gamma, rho=rho, sigma=sigma)
+        xk1, tau, tau_bar = semi_newton_paso(fun=fun, grad_fun=grad_fun, bk=bk, xk=xk, beta=beta,
+                                             c=c, t_min=t_min, gamma=gamma, rho=rho, sigma=sigma,
+                                             tau_hist=tau, tau_bar_hist=tau_bar, rho_opt=True, num_paso=k)
         k += 1
-        if norm(grad_fun(*xk)) <= tol:
+        if norm(grad_fun(*xk)) <= tol or k > 4:
             break
         xk = xk1
+        if k > 1:
+            tau[2], tau_bar[2] = tau[1], tau_bar[1]
+            tau[1], tau_bar[1] = tau[0], tau_bar[0]
+        print(xk, tau, tau_bar, k)
 
     return xk, k, norm(grad_fun(*xk))
 
