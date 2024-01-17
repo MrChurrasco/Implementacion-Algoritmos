@@ -56,7 +56,7 @@ def semi_newton_paso(fun: callable, grad_fun: callable, bk: np.ndarray,
             dk_sol = solve(bk + np.identity(bk.shape[0]) * rho, -wk)
             if np.inner(wk, dk_sol) <= -c * norm(dk_sol):
                 break
-            rho = rho >> 1
+            rho = rho / (1 >> 1)
 
         dk: np.ndarray = solve(bk + np.identity(bk.shape[0]) * rho, -wk)
 
@@ -92,12 +92,12 @@ def semi_newton(fun: callable, grad_fun: callable, bk: np.ndarray, xk: np.ndarra
     while True:
         xk1, tau, tau_bar = semi_newton_paso(fun=fun, grad_fun=grad_fun, bk=bk, xk=xk, beta=beta,
                                              c=c, t_min=t_min, gamma=gamma, rho=rho, sigma=sigma,
-                                             tau_hist=tau, tau_bar_hist=tau_bar, rho_opt=True, num_paso=k)
+                                             tau_hist=tau, tau_bar_hist=tau_bar, rho_opt=False, num_paso=k)
         k += 1
-        if norm(grad_fun(*xk)) <= tol or k > 4:
+        if norm(grad_fun(*xk)) <= tol:
             break
         xk = xk1
-        if k > 1:
+        if k > 2:
             tau[2], tau_bar[2] = tau[1], tau_bar[1]
             tau[1], tau_bar[1] = tau[0], tau_bar[0]
         print(xk, tau, tau_bar, k)
