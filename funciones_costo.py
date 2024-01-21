@@ -1,30 +1,43 @@
 import math
 import numpy as np
-import numba
+from numpy.linalg import norm
+from numba import vectorize, int64, float64
+
+list_types_common = [int64(int64),
+                     float64(float64)]
+
+# Función Objetivo
+def function_objetive(x: np.ndarray, c: np.ndarray, lamb: float, beta: float, v: callable) -> float:
+    return v(c@x + beta).mean() + lamb*norm(x)
+
+def derivative_function_objetive(x: np.ndarray, c):
+    pass
 
 
 # Funciones costo
 # Square Loss
-@numba.njit
-def square_loss(f: float | np.floating,
-                y: int | np.integer) -> float:
+@vectorize(list_types_common, nopython=True)
+def square_loss(t: float) -> float:
     """
-    Calcula el error cuadrático de la funcion f con respecto al valor de y.
+    Calcula el error cuadrático del valor t con respecto al valor de y.
 
     Args:
-        f (float | np.floating): Predicción del valor.
-        y (int | np.integer): Valor real {-1,1}.
+        t (float | np.floating)
 
     Returns: El error cuadrático de la función f con el valor y.
 
     """
-    return (y - f)**2
+    return (1 - t) ** 2
 
+def derivative_square_loss(t: float):
+    return 2*(t-1)
+
+def dderivative():
+    pass
 
 # Hinge Loss
-@numba.njit
-def hinge_loss(f: float | np.floating,
-               y: int | np.integer) -> float | np.floating:
+@vectorize(list_types_common, nopython=True)
+def hinge_loss(t: float) -> float:
     """
     Calcula el error de Hinge de la funcion f con respecto al valor de y.
 
@@ -35,13 +48,12 @@ def hinge_loss(f: float | np.floating,
     Returns: El error de Hinge de la función f con el valor y.
 
     """
-    return max(1 - y * f, 0.)
+    return max(1 - t, 0.)
 
 
 # Smoothed Hinge Loss
-@numba.njit
-def smooth_hinge_loss(f: float | np.floating,
-                      y: int | np.integer) -> float | np.floating:
+@vectorize(list_types_common, nopython=True)
+def smooth_hinge_loss(t: float) -> float:
     """
     Calcula el error de Smooth Hinge de la funcion f con respecto al valor de y.
 
@@ -52,16 +64,14 @@ def smooth_hinge_loss(f: float | np.floating,
     Returns: El error de Smooth Hinge de la función f con el valor y.
 
     """
-    a = y * f
-    if 0 < a <= 1:
-        return (1 - a)**2 / 2
-    return (a <= 0) * (0.5 - a)
+    if 0 < t <= 1:
+        return (1 - t) ** 2 / 2
+    return (t <= 0) * (0.5 - t)
 
 
 # Modified Square Loss
-@numba.njit
-def mod_square_loss(f: float | np.floating,
-                    y: int | np.integer) -> float | np.floating:
+@vectorize(list_types_common, nopython=True)
+def mod_square_loss(t: float) -> float:
     """
     Calcula el Modified Square Loss de la funcion f con respecto al valor de y.
 
@@ -72,13 +82,12 @@ def mod_square_loss(f: float | np.floating,
     Returns: El Modified Square Loss de la función f con el valor y.
 
     """
-    return max(1 - y * f, 0)**2
+    return max(1 - t, 0) ** 2
 
 
 # Exponential Loss
-@numba.njit
-def exp_loss(f: float | np.floating,
-             y: int | np.integer) -> float | np.floating:
+@vectorize(list_types_common, nopython=True)
+def exp_loss(t: float) -> float:
     """
     Calcula el Exponential Loss de la funcion f con respecto al valor de y.
 
@@ -89,13 +98,12 @@ def exp_loss(f: float | np.floating,
     Returns: El Exponential Loss de la función f con el valor y.
 
     """
-    return math.exp(-y * f)
+    return math.exp(-t)
 
 
 # Log loss
-@numba.njit
-def log_loss(f: float | np.floating,
-             y: int | np.integer) -> float | np.floating:
+@vectorize(list_types_common, nopython=True)
+def log_loss(t: float) -> float:
     """
     Calcula la Logistic Loss de la funcion f con respecto al valor de y.
 
@@ -106,17 +114,16 @@ def log_loss(f: float | np.floating,
     Returns: La Logistic Loss de la función f con el valor y.
 
     """
-    return math.log(1 + math.exp(-y * f))
+    return math.log(1 + math.exp(-t))
 
 
 # Based on Sigmoid Loss
 # Falta información de los parametros para el testeo
-@numba.njit
-def sigmoid_loss(f: float | np.floating,
-                 y: int | np.integer,
-                 gamma: float | np.floating,
-                 theta: float | np.floating,
-                 lamb: float | np.floating) -> float | np.floating | None:
+@vectorize([float64(float64,float64,float64,float64)], nopython=True)
+def sigmoid_loss(t: float,
+                 gamma: float,
+                 theta: float,
+                 lamb: float) -> float:
     """
     Calcula la Sigmoid Loss de la funcion f con respecto al valor de y.
 
@@ -130,20 +137,17 @@ def sigmoid_loss(f: float | np.floating,
     Returns: La Sigmoid Loss de la función f con el valor y.
 
     """
-    a = y * f
-    if -1 <= a <= 0:
-        return (1.2 - gamma) - gamma * a
-    if 0 < a <= theta:
-        return (1.2 - lamb) - (1.2 - 2 * gamma) * a / theta
-    if theta < a <= 1:
-        return (gamma - lamb * a) / (1 - theta)
-    return None
+    if -1 <= t <= 0:
+        return (1.2 - gamma) - gamma * t
+    elif 0 < t <= theta:
+        return (1.2 - lamb) - (1.2 - 2 * gamma) * t / theta
+    else:
+        return (gamma - lamb * t) / (1 - theta)
 
 
 # Phi-Learning
-@numba.njit
-def phi_learning(f: float | np.floating,
-                 y: int | np.integer) -> float | np.floating:
+@vectorize(list_types_common, nopython=True)
+def phi_learning(t: float) -> float:
     """
     Calcula el Phi Learning de la funcion f con respecto al valor de y.
 
@@ -151,19 +155,15 @@ def phi_learning(f: float | np.floating,
         f (float | np.floating): Predicción del valor.
         y (int | np.integer): Valor real {-1,1}.
 
-    Returns: El Phi Learning  de la función f con el valor y.
+    Returns: El Phi Learning de la función f con el valor y.
 
     """
-    a = y * f
-    return 1 - a if 0 <= a <= 1 else 1 - np.sign(a)
+    return 1 - t if 0 <= t <= 1 else 1 - np.sign(t)
 
 
 # Ramp Loss
-@numba.njit
-def ramp_loss(f: float | np.floating,
-              y: int | np.integer,
-              s: float | np.floating,
-              c: float | np.floating) -> float | np.floating:
+@vectorize([float64(float64,float64,float64)], nopython=True)
+def ramp_loss(t: float, s: float, c: float) -> float:
     """
     Calcula la Ramp Loss de la funcion f con respecto al valor de y.
 
@@ -176,15 +176,13 @@ def ramp_loss(f: float | np.floating,
     Returns: El Ramp Loss de la función f con el valor y.
 
     """
-    return (min(1 - s, max(1 - f * y, 0)) +
-            min(1 - s, max(1 + f * y, 0)) + c)
+    return (min(1 - s, max(1 - t, 0)) +
+            min(1 - s, max(1 + t, 0)) + c)
 
 
 # Smooth non-convex loss
-@numba.njit
-def smooth_non_convex_loss(f: float | np.floating,
-                           y: int | np.integer,
-                           lamb: float | np.floating) -> float | np.floating:
+@vectorize([float64(float64,float64)], nopython=True)
+def smooth_non_convex_loss(t: float, lamb: float) -> float:
     """
     Calcula la Smooth Non Convex Loss de la funcion f con respecto al valor de y.
 
@@ -196,13 +194,12 @@ def smooth_non_convex_loss(f: float | np.floating,
     Returns: La Smooth Non Convex Loss de la función f con el valor y.
 
     """
-    return 1 - math.tanh(lamb * y * f)
+    return 1 - math.tanh(lamb * t)
 
 
 # 2-layer Neural New-works
-@numba.njit
-def layer_neural(f: float | np.floating,
-                 y: int | np.integer) -> float | np.floating:
+@vectorize(list_types_common, nopython=True)
+def layer_neural(t: float) -> float:
     """
     Calcula la 2-Layer Nueral New-Works Loss de la funcion f con respecto al valor de y.
 
@@ -213,14 +210,12 @@ def layer_neural(f: float | np.floating,
     Returns: La 2-Layer Nueral New-Works Loss de la función f con el valor y.
 
     """
-    return math.pow((1 - (1 / (1 + math.exp(-y * f)))), 2)
+    return (1 - (1 / (1 + math.exp(-t))))**2
 
 
 # Logistic difference Loss
-@numba.njit
-def logistic_difference_loss(f: float | np.floating,
-                             y: int | np.integer,
-                             mu: float | np.floating) -> float | np.floating:
+@vectorize([float64(float64,float64)], nopython=True)
+def logistic_difference_loss(t: float, mu: float) -> float:
     """
     Calcula la Logistic Difference Loss de la funcion f con respecto al valor de y.
 
@@ -232,18 +227,18 @@ def logistic_difference_loss(f: float | np.floating,
     Returns: La Logistic Difference Loss de la función f con el valor y.
 
     """
-    return ((math.log(1 + math.exp(-y * f))) -
-            (math.log(1 + math.exp(-y * f - mu))))
+    return ((math.log(1 + math.exp(-t))) -
+            (math.log(1 + math.exp(-t - mu))))
 
 
 # Smoothed 0-1 Loss
-@numba.njit
-def smooth01(t: float | np.floating) -> float | np.floating:
+@vectorize(list_types_common, nopython=True)
+def smooth01(t: float) -> float:
     """
     Calcula la Smoothed 0-1 Loss de la funcion f con respecto al valor de y.
 
     Args:
-        t (float | np.floating): Valor de yi(w*xi+b)
+        t (float): Valor de yi(w*xi+b)
 
     Returns: La Smoothed 0-1 Loss de la función f con el valor y.
 

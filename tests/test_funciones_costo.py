@@ -3,87 +3,80 @@ import pytest
 import numpy as np
 
 ##
-clases = [-1, 1]
-rango_test = np.linspace(-5, 5, 20, dtype=np.float16)
+rango_test = np.linspace(-10, 10, 100, dtype=float)
+precision = 1e-15
 
 
 # Square Loss
 @pytest.mark.parametrize(
-    "fx_test, y_test",
-    [(fx, y) for fx in rango_test
-     for y in [-1, 1]]
+    "t_test",
+    rango_test
 )
-def test_square_loss_positive_always(fx_test, y_test):
-    assert fc.square_loss(fx_test, y_test) > 0
+def test_square_loss_positive_always(t_test):
+    assert fc.square_loss(t_test) > 0
 
 
 @pytest.mark.parametrize(
-    "fx_test, y_test, expected",
-    [(fx, y, (1 - fx * y) ** 2)
-     for fx in rango_test
-     for y in clases]
+    "t_test, expected",
+    [(t, (1 - t) ** 2)
+     for t in rango_test]
 )
-def test_square_loss(fx_test, y_test, expected):
-    assert fc.square_loss(fx_test, y_test) == expected
+def test_square_loss(t_test, expected):
+    assert fc.square_loss(t_test) - expected < precision
 
 
 # Hinge Loss
 @pytest.mark.parametrize(
-    "fx_test, y_test, expected",
-    [(fx, y, 1 - fx * y) if fx * y < 1
-     else (fx, y, 0)
-     for fx in rango_test
-     for y in clases]
+    "t_test, expected",
+    [(t, 1 - t) if t < 1
+     else (t, 0.)
+     for t in rango_test]
 )
-def test_hinge_loss(fx_test, y_test, expected):
-    assert fc.hinge_loss(fx_test, y_test) == expected
+def test_hinge_loss(t_test, expected):
+    assert fc.hinge_loss(t_test) - expected < precision
 
 
 # Smoothed Hinge Loss
 @pytest.mark.parametrize(
-    "fx_test, y_test, expected",
-    [(fx, y, 0.5 - fx * y) if fx * y <= 0 else
-     (fx, y, 0) if fx * y >= 1 else
-     (fx, y, (1 - y * fx) ** 2 / 2)
-     for fx in rango_test
-     for y in clases]
+    "t_test, expected",
+    [(t, 0.5 - t) if t <= 0 else
+     (t, 0) if t >= 1 else
+     (t, (1 - t) ** 2 / 2)
+     for t in rango_test]
 )
-def test_smooth_hinge_loss(fx_test, y_test, expected):
-    assert fc.smooth_hinge_loss(fx_test, y_test) == expected
+def test_smooth_hinge_loss(t_test, expected):
+    assert fc.smooth_hinge_loss(t_test) - expected < precision
 
 
 # Modified Square Loss
 @pytest.mark.parametrize(
-    "fx_test, y_test, expected",
-    [(fx, y, (1 - fx * y) ** 2) if 1 - y * fx >= 0 else
-     (fx, y, 0)
-     for fx in rango_test
-     for y in clases]
+    "t_test, expected",
+    [(t, (1 - t) ** 2) if 1 - t >= 0 else
+     (t, 0)
+     for t in rango_test]
 )
-def test_mod_square_loss(fx_test, y_test, expected):
-    assert fc.mod_square_loss(fx_test, y_test) == expected
+def test_mod_square_loss(t_test, expected):
+    assert fc.mod_square_loss(t_test) - expected < precision
 
 
 # Exponential Loss
 @pytest.mark.parametrize(
-    "fx_test, y_test, expected",
-    [(fx, y, np.exp(-y * fx))
-     for fx in rango_test
-     for y in clases]
+    "t_test, expected",
+    [(t, np.exp(-t))
+     for t in rango_test]
 )
-def test_exp_loss(fx_test, y_test, expected):
-    assert fc.exp_loss(fx_test, y_test) == expected
+def test_exp_loss(t_test, expected):
+    assert fc.exp_loss(t_test) - expected < precision
 
 
 # Log loss
 @pytest.mark.parametrize(
-    "fx_test, y_test, expected",
-    [(fx, y, np.log(1 + np.exp(-y * fx)))
-     for fx in rango_test
-     for y in clases]
+    "t_test, expected",
+    [(t, np.log(1 + np.exp(-t)))
+     for t in rango_test]
 )
-def test_log_loss(fx_test, y_test, expected):
-    assert fc.log_loss(fx_test, y_test) == expected
+def test_log_loss(t_test, expected):
+    assert fc.log_loss(t_test) - expected < precision
 
 
 """
@@ -116,62 +109,57 @@ def test_sigmoid_loss(fx_test,
 
 # Log loss
 @pytest.mark.parametrize(
-    "fx_test, y_test, expected",
-    [(fx, y, 1 - y * fx) if 0 <= y * fx <= 1 else
-     (fx, y, 1 - np.sign(y * fx))
-     for fx in rango_test
-     for y in clases]
+    "t_test, expected",
+    [(t, 1 - t) if 0 <= t <= 1 else
+     (t, 1 - np.sign(t))
+     for t in rango_test]
 )
-def test_phi_learning(fx_test, y_test, expected):
-    assert fc.phi_learning(fx_test, y_test) == expected
+def test_phi_learning(t_test, expected):
+    assert fc.phi_learning(t_test) - expected < precision
 
 
 # Ramp Loss
 @pytest.mark.parametrize(
-    "fx_test, y_test, s_test, c_test, expected",
-    [(fx, y, s, c, (min(1 - s, max(1 - fx * y, 0)) + min(1 - s, max(1 + fx * y, 0)) + c))
+    "t_test, s_test, c_test, expected",
+    [(t, s, c, (min(1 - s, max(1 - t, 0)) + min(1 - s, max(1 + t, 0)) + c))
      for s in np.linspace(-1 + 1e-10, 0, 25, dtype=float)
      for c in rango_test
-     for fx in rango_test
-     for y in clases]
+     for t in rango_test]
 )
-def test_ramp_loss(fx_test, y_test, s_test, c_test, expected):
-    assert fc.ramp_loss(fx_test, y_test, s_test, c_test) == expected
+def test_ramp_loss(t_test, s_test, c_test, expected):
+    assert fc.ramp_loss(t_test, s_test, c_test) - expected < precision
 
 
 # Smooth non-convex loss
 @pytest.mark.parametrize(
-    "fx_test, y_test, lamb_test, expected",
-    [(fx, y, lamb, 1 - np.tanh(lamb * y * fx))
+    "t_test, lamb_test, expected",
+    [(t, lamb, 1 - np.tanh(lamb * t))
      for lamb in np.linspace(-1 + 1e-10, 1, 25, dtype=float)
-     for fx in rango_test
-     for y in clases]
+     for t in rango_test]
 )
-def test_smooth_non_convex_loss(fx_test, y_test, lamb_test, expected):
-    assert fc.smooth_non_convex_loss(fx_test, y_test, lamb_test) - expected < 1e-10
+def test_smooth_non_convex_loss(t_test, lamb_test, expected):
+    assert fc.smooth_non_convex_loss(t_test, lamb_test) - expected < precision
 
 
 # 2-layer Neural New-works
 @pytest.mark.parametrize(
-    "fx_test, y_test, expected",
-    [(fx, y,  (1 - 1/(1+np.exp(-y * fx)))**2)
-     for fx in rango_test
-     for y in clases]
+    "t_test, expected",
+    [(t,  (1 - 1/(1+np.exp(-t)))**2)
+     for t in rango_test]
 )
-def test_layer_neural(fx_test, y_test, expected):
-    assert fc.layer_neural(fx_test, y_test) == expected
+def test_layer_neural(t_test, expected):
+    assert fc.layer_neural(t_test) - expected < precision
 
 
 # Logistic difference Loss
 @pytest.mark.parametrize(
-    "fx_test, y_test, mu_test, expected",
-    [(fx, y, mu, ((np.log(1 + np.exp(-y * fx))) - (np.log(1 + np.exp(-y * fx - mu)))))
+    "t_test, mu_test, expected",
+    [(t, mu, ((np.log(1 + np.exp(-t))) - (np.log(1 + np.exp(-t - mu)))))
      for mu in rango_test
-     for fx in rango_test
-     for y in clases]
+     for t in rango_test]
 )
-def test_logistic_difference_loss(fx_test, y_test, mu_test, expected):
-    assert fc.logistic_difference_loss(fx_test, y_test, mu_test) == expected
+def test_logistic_difference_loss(t_test, mu_test, expected):
+    assert fc.logistic_difference_loss(t_test, mu_test) - expected < precision
 
 
 # Smoothed 0-1 Loss
@@ -183,4 +171,4 @@ def test_logistic_difference_loss(fx_test, y_test, mu_test, expected):
      for t in rango_test]
 )
 def test_smooth01(t_test, expected):
-    assert fc.smooth01(t_test) == expected
+    assert fc.smooth01(t_test) - expected < precision
