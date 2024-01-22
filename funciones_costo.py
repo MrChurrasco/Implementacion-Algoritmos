@@ -1,18 +1,12 @@
 import math
 import numpy as np
 from numpy.linalg import norm
-from numba import vectorize, int64, float64
+from numba import vectorize, float64
 
-list_types_common = [int64(int64),
-                     float64(float64)]
+list_types_common = [float64(float64)]
+
 
 # Función Objetivo
-def function_objetive(x: np.ndarray, c: np.ndarray, lamb: float, beta: float, v: callable) -> float:
-    return v(c@x + beta).mean() + lamb*norm(x)
-
-def derivative_function_objetive(x: np.ndarray, c):
-    pass
-
 
 # Funciones costo
 # Square Loss
@@ -29,11 +23,15 @@ def square_loss(t: float) -> float:
     """
     return (1 - t) ** 2
 
+
+@vectorize(list_types_common, nopython=True)
 def derivative_square_loss(t: float):
-    return 2*(t-1)
+    return 2 * (t - 1)
+
 
 def dderivative():
     pass
+
 
 # Hinge Loss
 @vectorize(list_types_common, nopython=True)
@@ -49,6 +47,11 @@ def hinge_loss(t: float) -> float:
 
     """
     return max(1 - t, 0.)
+
+
+@vectorize(list_types_common, nopython=True)
+def derivative_hinge_loss(t: float) -> float:
+    return -(t < 1)
 
 
 # Smoothed Hinge Loss
@@ -69,6 +72,13 @@ def smooth_hinge_loss(t: float) -> float:
     return (t <= 0) * (0.5 - t)
 
 
+@vectorize(list_types_common, nopython=True)
+def derivative_smooth_hinge_loss(t: float) -> float:
+    if 0 < t < 1:
+        return t - 1
+    return -(t <= 0)
+
+
 # Modified Square Loss
 @vectorize(list_types_common, nopython=True)
 def mod_square_loss(t: float) -> float:
@@ -85,6 +95,11 @@ def mod_square_loss(t: float) -> float:
     return max(1 - t, 0) ** 2
 
 
+@vectorize(list_types_common, nopython=True)
+def derivative_mod_square_loss(t: float) -> float:
+    return (t < 1) * 2 * (t - 1)
+
+
 # Exponential Loss
 @vectorize(list_types_common, nopython=True)
 def exp_loss(t: float) -> float:
@@ -92,13 +107,17 @@ def exp_loss(t: float) -> float:
     Calcula el Exponential Loss de la funcion f con respecto al valor de y.
 
     Args:
-        f (float | np.floating): Predicción del valor.
         y (int | np.integer): Valor real {-1,1}.
 
     Returns: El Exponential Loss de la función f con el valor y.
 
     """
     return math.exp(-t)
+
+
+@vectorize(list_types_common, nopython=True)
+def derivative_exp_loss(t: float) -> float:
+    return -math.exp(-t)
 
 
 # Log loss
@@ -117,9 +136,14 @@ def log_loss(t: float) -> float:
     return math.log(1 + math.exp(-t))
 
 
+@vectorize(list_types_common, nopython=True)
+def derivative_log_loss(t: float) -> float:
+    return -1 / (1 + math.exp(t))
+
+
 # Based on Sigmoid Loss
 # Falta información de los parametros para el testeo
-@vectorize([float64(float64,float64,float64,float64)], nopython=True)
+@vectorize([float64(float64, float64, float64, float64)], nopython=True)
 def sigmoid_loss(t: float,
                  gamma: float,
                  theta: float,
@@ -145,6 +169,32 @@ def sigmoid_loss(t: float,
         return (gamma - lamb * t) / (1 - theta)
 
 
+@vectorize([float64(float64, float64, float64, float64)], nopython=True)
+def derivative_sigmoid_loss(t: float,
+                            gamma: float,
+                            theta: float,
+                            lamb: float) -> float:
+    """
+    Calcula la Sigmoid Loss de la funcion f con respecto al valor de y.
+
+    Args:
+        f (float | np.floating): Predicción del valor. Debe pertenece el valor entre los valores [-1,1].
+        y (int | np.integer): Valor real {-1,1}.
+        gamma (float | np.floating): ... Parámetro Gamma del sigmoid.
+        theta (float | np.floating): Debe estar entre (0,1). Parámetro Theta del sigmoid.
+        lamb (float | np.floating): ... Parámetro Lambda del sigmoid.
+
+    Returns: La Sigmoid Loss de la función f con el valor y.
+
+    """
+    if -1 <= t <= 0:
+        return - gamma
+    elif 0 < t <= theta:
+        return (2 * gamma - 1.2) / theta
+    else:
+        return lamb / (1 - theta)
+
+
 # Phi-Learning
 @vectorize(list_types_common, nopython=True)
 def phi_learning(t: float) -> float:
@@ -162,7 +212,7 @@ def phi_learning(t: float) -> float:
 
 
 # Ramp Loss
-@vectorize([float64(float64,float64,float64)], nopython=True)
+@vectorize([float64(float64, float64, float64)], nopython=True)
 def ramp_loss(t: float, s: float, c: float) -> float:
     """
     Calcula la Ramp Loss de la funcion f con respecto al valor de y.
@@ -181,7 +231,7 @@ def ramp_loss(t: float, s: float, c: float) -> float:
 
 
 # Smooth non-convex loss
-@vectorize([float64(float64,float64)], nopython=True)
+@vectorize([float64(float64, float64)], nopython=True)
 def smooth_non_convex_loss(t: float, lamb: float) -> float:
     """
     Calcula la Smooth Non Convex Loss de la funcion f con respecto al valor de y.
@@ -197,6 +247,11 @@ def smooth_non_convex_loss(t: float, lamb: float) -> float:
     return 1 - math.tanh(lamb * t)
 
 
+@vectorize([float64(float64, float64)], nopython=True)
+def derivative_smooth_non_convex_loss(t: float, lamb: float) -> float:
+    return -lamb * (1 / np.cosh(lamb * t) ** 2)
+
+
 # 2-layer Neural New-works
 @vectorize(list_types_common, nopython=True)
 def layer_neural(t: float) -> float:
@@ -210,11 +265,17 @@ def layer_neural(t: float) -> float:
     Returns: La 2-Layer Nueral New-Works Loss de la función f con el valor y.
 
     """
-    return (1 - (1 / (1 + math.exp(-t))))**2
+    return (1 - (1 / (1 + math.exp(-t)))) ** 2
+
+
+@vectorize(list_types_common, nopython=True)
+def derivative_layer_neural(t: float) -> float:
+    e_t = np.exp(t)
+    return - (2 * e_t) / (1 + e_t) ** 3
 
 
 # Logistic difference Loss
-@vectorize([float64(float64,float64)], nopython=True)
+@vectorize([float64(float64, float64)], nopython=True)
 def logistic_difference_loss(t: float, mu: float) -> float:
     """
     Calcula la Logistic Difference Loss de la funcion f con respecto al valor de y.
@@ -227,8 +288,12 @@ def logistic_difference_loss(t: float, mu: float) -> float:
     Returns: La Logistic Difference Loss de la función f con el valor y.
 
     """
-    return ((math.log(1 + math.exp(-t))) -
-            (math.log(1 + math.exp(-t - mu))))
+    return (math.log(1 + math.exp(-t))) - (math.log(1 + math.exp(-t - mu)))
+
+
+@vectorize([float64(float64, float64)], nopython=True)
+def derivative_logistic_difference_loss(t: float, mu: float) -> float:
+    return (- 1 / (1 + math.exp(t))) + (1 / (1 + math.exp(t + mu)))
 
 
 # Smoothed 0-1 Loss
@@ -244,3 +309,8 @@ def smooth01(t: float) -> float:
 
     """
     return (t ** 3 - 3 * t + 2) / 4 if -1 <= t <= 1 else t < -1
+
+
+@vectorize(list_types_common, nopython=True)
+def derivative_smooth01(t: float) -> float:
+    return (-1 <= t <= 1) * ((3 / 4) * (t ** 2 - 1))

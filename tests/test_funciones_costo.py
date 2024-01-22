@@ -25,6 +25,15 @@ def test_square_loss(t_test, expected):
     assert fc.square_loss(t_test) - expected < precision
 
 
+@pytest.mark.parametrize(
+    "t_test, expected",
+    [(t, 2 * (t-1))
+     for t in rango_test]
+)
+def test_derivative_square_loss(t_test, expected):
+    assert fc.derivative_square_loss(t_test) - expected < precision
+
+
 # Hinge Loss
 @pytest.mark.parametrize(
     "t_test, expected",
@@ -34,6 +43,16 @@ def test_square_loss(t_test, expected):
 )
 def test_hinge_loss(t_test, expected):
     assert fc.hinge_loss(t_test) - expected < precision
+
+
+@pytest.mark.parametrize(
+    "t_test, expected",
+    [(t, - 1) if t < 1
+     else (t, 0.)
+     for t in rango_test]
+)
+def test_derivative_hinge_loss(t_test, expected):
+    assert fc.derivative_hinge_loss(t_test) - expected < precision
 
 
 # Smoothed Hinge Loss
@@ -48,15 +67,36 @@ def test_smooth_hinge_loss(t_test, expected):
     assert fc.smooth_hinge_loss(t_test) - expected < precision
 
 
+@pytest.mark.parametrize(
+    "t_test, expected",
+    [(t, -1) if t <= 0 else
+     (t, 0) if t >= 1 else
+     (t, t - 1)
+     for t in rango_test]
+)
+def test_derivate_smooth_hinge_loss(t_test, expected):
+    assert fc.derivative_smooth_hinge_loss(t_test) - expected < precision
+
+
 # Modified Square Loss
 @pytest.mark.parametrize(
     "t_test, expected",
-    [(t, (1 - t) ** 2) if 1 - t >= 0 else
+    [(t, (1 - t) ** 2) if 1 >= t else
      (t, 0)
      for t in rango_test]
 )
 def test_mod_square_loss(t_test, expected):
     assert fc.mod_square_loss(t_test) - expected < precision
+
+
+@pytest.mark.parametrize(
+    "t_test, expected",
+    [(t, 2 * (t - 1)) if 1 >= t else
+     (t, 0)
+     for t in rango_test]
+)
+def test_derivative_mod_square_loss(t_test, expected):
+    assert fc.derivative_mod_square_loss(t_test) - expected < precision
 
 
 # Exponential Loss
@@ -69,6 +109,15 @@ def test_exp_loss(t_test, expected):
     assert fc.exp_loss(t_test) - expected < precision
 
 
+@pytest.mark.parametrize(
+    "t_test, expected",
+    [(t, -np.exp(-t))
+     for t in rango_test]
+)
+def test_derivative_exp_loss(t_test, expected):
+    assert fc.derivative_exp_loss(t_test) - expected < precision
+
+
 # Log loss
 @pytest.mark.parametrize(
     "t_test, expected",
@@ -77,6 +126,15 @@ def test_exp_loss(t_test, expected):
 )
 def test_log_loss(t_test, expected):
     assert fc.log_loss(t_test) - expected < precision
+
+
+@pytest.mark.parametrize(
+    "t_test, expected",
+    [(t, -1/ (1 + np.exp(t)))
+     for t in rango_test]
+)
+def test_derivative_log_loss(t_test, expected):
+    assert fc.derivative_log_loss(t_test) - expected < precision
 
 
 """
@@ -107,7 +165,7 @@ def test_sigmoid_loss(fx_test,
 """
 
 
-# Log loss
+# Phi-Learning
 @pytest.mark.parametrize(
     "t_test, expected",
     [(t, 1 - t) if 0 <= t <= 1 else
@@ -141,14 +199,33 @@ def test_smooth_non_convex_loss(t_test, lamb_test, expected):
     assert fc.smooth_non_convex_loss(t_test, lamb_test) - expected < precision
 
 
+@pytest.mark.parametrize(
+    "t_test, lamb_test, expected",
+    [(t, lamb, - lamb * (1 / np.cosh(lamb * t)) ** 2)
+     for lamb in np.linspace(-1 + 1e-10, 1, 25, dtype=float)
+     for t in rango_test]
+)
+def test_derivative_smooth_non_convex_loss(t_test, lamb_test, expected):
+    assert fc.derivative_smooth_non_convex_loss(t_test, lamb_test) - expected < precision
+
+
 # 2-layer Neural New-works
 @pytest.mark.parametrize(
     "t_test, expected",
-    [(t,  (1 - 1/(1+np.exp(-t)))**2)
+    [(t, (1 - 1 / (1 + np.exp(-t))) ** 2)
      for t in rango_test]
 )
 def test_layer_neural(t_test, expected):
     assert fc.layer_neural(t_test) - expected < precision
+
+
+@pytest.mark.parametrize(
+    "t_test, expected",
+    [(t, -(2 * np.exp(t)) / ((1 + np.exp(t)) ** 3))
+     for t in rango_test]
+)
+def test_derivative_layer_neural(t_test, expected):
+    assert fc.derivative_layer_neural(t_test) - expected < precision
 
 
 # Logistic difference Loss
@@ -162,13 +239,37 @@ def test_logistic_difference_loss(t_test, mu_test, expected):
     assert fc.logistic_difference_loss(t_test, mu_test) - expected < precision
 
 
+# Logistic difference Loss
+@pytest.mark.parametrize(
+    "t_test, mu_test, expected",
+    [(t, mu, ((1 / (1 + np.exp(t + mu))) - (1 / (1 + np.exp(t)))))
+     for mu in rango_test
+     for t in rango_test]
+)
+def test_derivative_logistic_difference_loss(t_test, mu_test, expected):
+    assert fc.derivative_logistic_difference_loss(t_test, mu_test) - expected < precision
+
+
 # Smoothed 0-1 Loss
 @pytest.mark.parametrize(
     "t_test, expected",
     [(t, 0) if t > 1 else
      (t, 1) if t < -1 else
-     (t, (1/4)*t**3 - (3/4)*t + 0.5)
+     (t, (1 / 4) * t ** 3 - (3 / 4) * t + 0.5)
      for t in rango_test]
 )
 def test_smooth01(t_test, expected):
     assert fc.smooth01(t_test) - expected < precision
+
+
+@pytest.mark.parametrize(
+    "t_test, expected",
+    [(t, 0) if t > 1 else
+     (t, 0) if t < -1 else
+     (t, (3 / 4) * (t ** 2 - 1))
+     for t in rango_test]
+)
+def test_derivative_smooth01(t_test, expected):
+    assert fc.derivative_smooth01(t_test) - expected < precision
+
+# Spline
