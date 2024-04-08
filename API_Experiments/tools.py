@@ -1,11 +1,9 @@
 import numpy as np
 from torchvision.datasets import MNIST
-from descenso_gradiente import descenso_gradiente
-from time import perf_counter_ns
 import pandas as pd
 
 # Variables globales
-
+"""
 # Dataframes del entrenamiento
 df_trainX: np.ndarray
 df_trainY: np.ndarray
@@ -17,17 +15,18 @@ df_main: pd.DataFrame
 df_comb: pd.DataFrame
 df_iter: pd.DataFrame
 
+# Comparaciones que se harán en el experimento
+list_to_compare: set[tuple[int, int]]
+"""
+
 # Los nombres de los archivos .csv
 name_df_main: str = "DF_ALGORITHMS.csv"
 name_df_comb: str = "DF_DATA_COMBINATION.csv"
 name_df_iter: str = "DF_ITERATIONS.csv"
 
-# Comparaciones que se harán en el experimento
-list_to_compare: set[tuple[int, int]]
-
 
 # Funciones de la API
-def initial_dataset() -> None:
+def initialize_dataset_training() -> None:
     global df_trainX, df_trainY, df_testX, df_testY
 
     df_train: list = list(zip(*MNIST(root="",
@@ -48,6 +47,7 @@ def initial_dataset() -> None:
     df_testY: np.ndarray = np.asarray(df_test[1])
 
     del df_train, df_test
+
 
 
 def initial_df_metadata(new: bool = False) -> None:
@@ -99,7 +99,7 @@ def set_dataset_by_experiment(size: int = 0,
     global df_trainX, df_trainY, df_testX, df_testY, list_to_compare
 
     # Error que pueden suceder
-    if type(size) is not int and size >= 0:
+    if type(size) is not int and size <= 0:
         raise ValueError("size tiene que ser entero positivo y mayor que 0 o None.")
 
     if type(seed) is not int and seed > 0:
@@ -187,3 +187,19 @@ def set_dataset_by_experiment(size: int = 0,
 
 def run_experiments():
     pass
+
+
+def parse_dict_descent_methods_input_to_dataframe(one_method_one_input):
+    return None
+
+
+def parse_input_function_to_dataframe(one_element):
+    return None
+
+    # Filtrar y perturbar el dataset de las features (df_trainX, df_testX)
+    # según lo estimado en el experimento
+    # Filtrar por tamaño y clases, y aplicar función de perturbación
+    size_of_dataset: int = 100
+    class_selected: list[int] = [0, 1]
+    comparator: list[tuple[int, int]] = [(0, 1)]
+    fun_perturbation: callable(float) = lambda t: t + 1

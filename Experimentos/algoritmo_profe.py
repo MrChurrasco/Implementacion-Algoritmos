@@ -3,8 +3,8 @@ from numpy.linalg import norm, solve
 from scipy.optimize import minimize_scalar
 
 
-def backtracking(fun: callable, wk: np.ndarray, xk: np.ndarray, dk: np.ndarray, tk: np.ndarray | float = 1, beta: float = 0.5,
-                 sigma: float = 1e-4) -> float:
+def backtracking(fun: callable, wk: np.ndarray, xk: np.ndarray, dk: np.ndarray, tk: np.ndarray | float = 1,
+                 beta: float = 0.5, sigma: float = 1e-4) -> float:
     """Método para calcular alpha, usando las condiciones de Goldstein y el método de backtracking.
 
     Args:
